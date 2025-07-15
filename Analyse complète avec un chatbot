@@ -1,3 +1,6 @@
+pip install pandas sqlalchemy scikit-learn openai tabulate
+
+
 import pandas as pd
 import sqlalchemy
 from sklearn.impute import SimpleImputer
