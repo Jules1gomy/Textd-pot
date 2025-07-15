@@ -1,0 +1,102 @@
+import pandas as pd
+import sqlalchemy
+from sklearn.impute import SimpleImputer
+from tabulate import tabulate
+import openai
+
+# 👉 Configurez votre clé API OpenAI si vous souhaitez des recommandations GPT
+openai.api_key = "YOUR_OPENAI_API_KEY"
+
+# --- Connexion à la base de données ---
+def load_data(db_url, table_name):
+    engine = sqlalchemy.create_engine(db_url)
+    df = pd.read_sql_table(table_name, con=engine)
+    return df
+
+# --- Analyse Exploratoire de base ---
+def basic_profiling(df):
+    print("\n📊 Aperçu des données :")
+    print(tabulate(df.head(), headers='keys', tablefmt='grid'))
+
+    print("\n🧾 Info des colonnes :")
+    print(df.info())
+
+    print("\n📉 Statistiques descriptives :")
+    print(df.describe(include='all'))
+
+# --- Problèmes potentiels ---
+def identify_problems(df):
+    report = {}
+
+    missing = df.isnull().sum()
+    report["missing_values"] = missing[missing > 0]
+
+    duplicated = df.duplicated().sum()
+    report["duplicates"] = duplicated
+
+    skewness = df.select_dtypes(include='number').skew()
+    report["skewness"] = skewness[abs(skewness) > 1]
+
+    return report
+
+# --- Recommandations GPT (optionnel) ---
+def generate_recommendations(report):
+    prompt = f"""
+    Voici un rapport d'analyse de données contenant des problèmes détectés :
+    {report}
+
+    Fournis des recommandations précises et actionnables pour résoudre chaque problème.
+    """
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        return f"Erreur lors de l'appel GPT : {e}"
+
+# --- Interface Chatbot CLI ---
+def chatbot():
+    print("🤖 Bienvenue dans le Chatbot Data Analyst.")
+    db_url = input("🔗 Entrez l'URL de la base de données (ex: sqlite:///mydb.db) : ")
+    table_name = input("📂 Entrez le nom de la table à analyser : ")
+
+    try:
+        df = load_data(db_url, table_name)
+    except Exception as e:
+        print(f"Erreur lors du chargement de la base : {e}")
+        return
+
+    while True:
+        print("\nQue souhaitez-vous faire ?")
+        print("1. Profilage de base")
+        print("2. Identifier les problèmes")
+        print("3. Recommandations GPT")
+        print("4. Quitter")
+        choix = input("➡ Votre choix : ")
+
+        if choix == '1':
+            basic_profiling(df)
+        elif choix == '2':
+            problems = identify_problems(df)
+            print("\n🔍 Problèmes détectés :")
+            for key, val in problems.items():
+                print(f"\n🛠 {key} :")
+                print(val)
+        elif choix == '3':
+            problems = identify_problems(df)
+            recommandations = generate_recommendations(problems)
+            print("\n💡 Recommandations :")
+            print(recommandations)
+        elif choix == '4':
+            print("👋 Fin de session.")
+            break
+        else:
+            print("❌ Choix invalide.")
+
+# --- Lancer le chatbot ---
+if __name__ == "__main__":
+    chatbot()
