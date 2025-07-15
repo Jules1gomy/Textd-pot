@@ -1,0 +1,59 @@
+🔑 Étape 1 : Créer une clé API OpenAI
+Rendez-vous sur : https://platform.openai.com/account/api-keys
+
+Connectez-vous avec votre compte OpenAI.
+
+Cliquez sur "Create new secret key".
+
+Copiez immédiatement la clé (vous ne pourrez plus la voir après).
+
+Exemple de clé :
+
+Copier
+Modifier
+sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+🛠️ Étape 2 : Intégrer la clé dans votre code Python
+Option 1 : En clair dans le code (pour test rapide, pas recommandé en prod)
+
+python
+Copier
+Modifier
+openai.api_key = "sk-votre-clé-ici"
+Option 2 : Via une variable d’environnement (recommandé en production)
+
+Dans votre terminal / shell :
+
+bash
+Copier
+Modifier
+export OPENAI_API_KEY="sk-votre-clé-ici"
+Dans votre script Python :
+
+python
+Copier
+Modifier
+import os
+import openai
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+✅ Test rapide pour valider que la clé fonctionne
+python
+Copier
+Modifier
+import openai
+
+openai.api_key = "sk-votre-clé-ici"  # ou via os.getenv comme expliqué
+
+response = openai.ChatCompletion.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Donne-moi une recommandation pour nettoyer des données manquantes."}],
+    temperature=0.5
+)
+
+print(response['choices'][0]['message']['content'])
+⚠️ Conseils de sécurité
+Ne jamais pousser votre clé API sur GitHub.
+
+Stockez-la dans un .env, dans un vault, ou utilisez un gestionnaire de secrets.
+
+Limitez les permissions de la clé si possible (actuellement OpenAI ne permet pas encore une gestion fine par clé).
