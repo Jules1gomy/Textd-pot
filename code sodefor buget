@@ -1,0 +1,311 @@
+📦 Installation des dépendances
+bash
+Copier
+Modifier
+pip install pandas openai streamlit python-dotenv
+📁 Structure du projet
+bash
+Copier
+Modifier
+budget_chatbot/
+│
+├── app.py              ← Interface Streamlit
+├── advisor.py          ← Analyse & conseils budgétaires
+├── chat.py             ← Moteur de chatbot (OpenAI ou règles)
+├── .env                ← Clé API OpenAI
+📄 Exemple de fichier CSV ou Excel
+compte_id	date	catégorie	montant	type	budget_mensuel
+1001	2025-07-01	Alimentation	120.50	débit	300
+1001	2025-07-03	Transport	80.00	débit	150
+1001	2025-07-10	Salaire	2500.00	crédit	
+1002	2025-07-05	Shopping	200.00	débit	400
+
+🔐 .env
+env
+Copier
+Modifier
+OPENAI_API_KEY=sk-...
+🧠 chat.py – Moteur NLP
+python
+Copier
+Modifier
+import openai
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+def get_budget_advice(user_prompt, context_summary):
+    messages = [
+        {"role": "system", "content": "Tu es un assistant financier intelligent. Tu aides à analyser les dépenses par rapport au budget et à proposer des conseils budgétaires adaptés."},
+        {"role": "user", "content": f"Voici les données : {context_summary}"},
+        {"role": "user", "content": user_prompt}
+    ]
+
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=messages,
+        temperature=0.4,
+        max_tokens=500
+    )
+    return response['choices'][0]['message']['content']
+📊 advisor.py – Analyse des comptes
+python
+Copier
+Modifier
+import pandas as pd
+
+def load_data(file):
+    if file.name.endswith('.csv'):
+        df = pd.read_csv(file)
+    else:
+        df = pd.read_excel(file)
+    df['date'] = pd.to_datetime(df['date'])
+    return df
+
+def summarize_account(df, account_id):
+    df_account = df[df['compte_id'] == account_id]
+    if df_account.empty:
+        return f"Aucune donnée trouvée pour le compte {account_id}", None
+
+    summary = {}
+    categories = df_account['catégorie'].unique()
+    for cat in categories:
+        cat_df = df_account[df_account['catégorie'] == cat]
+        spent = cat_df[cat_df['type'] == 'débit']['montant'].sum()
+        budget = cat_df['budget_mensuel'].dropna().unique()
+        budget = budget[0] if len(budget) > 0 else None
+        summary[cat] = {
+            'dépensé': round(spent, 2),
+            'budget': budget,
+            'écart': round((budget - spent), 2) if budget else None
+        }
+    return summary, df_account
+
+def format_summary_for_ai(summary):
+    lines = []
+    for cat, data in summary.items():
+        line = f"{cat} : dépensé {data['dépensé']} €, budget {data['budget']} €, écart {data['écart']} €"
+        lines.append(line)
+    return "\n".join(lines)
+💬 app.py – Interface utilisateur
+python
+Copier
+Modifier
+import streamlit as st
+from advisor import load_data, summarize_account, format_summary_for_ai
+from chat import get_budget_advice
+
+st.set_page_config(page_title="Assistant Budgetaire IA", page_icon="💸")
+st.title("💸 Chatbot Budgetaire Intelligent")
+
+uploaded_file = st.file_uploader("📂 Charge ton fichier CSV ou Excel", type=["csv", "xlsx"])
+
+if uploaded_file:
+    df = load_data(uploaded_file)
+    compte_ids = df['compte_id'].unique()
+    selected_id = st.selectbox("🔍 Choisis un compte", compte_ids)
+
+    summary, df_account = summarize_account(df, selected_id)
+
+    if summary:
+        st.subheader("📊 Résumé des dépenses vs budget :")
+        for cat, info in summary.items():
+            st.write(f"- **{cat}** : Dépensé {info['dépensé']} €, Budget {info['budget']} €, Écart {info['écart']} €")
+
+        st.subheader("🤖 Pose une question sur ton budget :")
+        user_question = st.text_input("Ex: Comment puis-je mieux gérer mes dépenses ?")
+
+        if user_question:
+            ai_input = format_summary_for_ai(summary)
+            response = get_budget_advice(user_question, ai_input)
+            st.markdown("### 📌 Conseils personnalisés :")
+            st.markdown(response)
+✅ Fonctionnalités proposées
+Lecture et analyse de fichiers .csv ou .xlsx
+
+Suivi par catégorie : alimentation, transport, shopping, etc.
+
+Comparaison dépenses vs budget
+
+Conseils générés par IA via GPT
+
+Interface simple et interactive
+
+🔜 Évolutions possibles
+Alertes automatiques si dépassement de budget
+
+Suivi multi-mois
+
+Graphe des dépenses avec plotly
+
+Ajout de seuils personnalisables
+
+Authentification utilisateur
+
+Souhaites-tu que je t’aide à :
+
+Générer un exemple de fichier prêt à l’emploi ?
+
+Ajouter des graphiques ?
+
+Déployer sur le Web (ex : via Streamlit Cloud ou Render) ?
+
+Je peux aussi t’aider à convertir cette app en assistant mobile (Flutter/React Native) si besoin.
+
+
+
+Vous avez dit :
+Générer un exemple de fichier prêt à l’emploi ?
+
+Ajouter des graphiques ?
+
+Déployer sur le Web (ex : via Streamlit Cloud ou Render) ?
+
+ convertir cette app en assistant mobile (Flutter/React Native) si besoin.
+
+ChatGPT a dit :
+Excellentes idées ! Voici un plan complet pour :
+
+✅ Générer un fichier CSV/Excel prêt à l'emploi
+
+📈 Ajouter des graphiques interactifs
+
+🌍 Déployer sur le Web
+
+📱 Convertir l'app en assistant mobile
+
+1. ✅ Générer un fichier exemple (CSV et Excel)
+Tu peux exécuter ce script pour créer un fichier transactions_exemple.csv et transactions_exemple.xlsx.
+
+python
+Copier
+Modifier
+import pandas as pd
+
+data = {
+    "compte_id": [1001]*6 + [1002]*4,
+    "date": [
+        "2025-07-01", "2025-07-03", "2025-07-10", "2025-07-12", "2025-07-15", "2025-07-18",
+        "2025-07-02", "2025-07-06", "2025-07-11", "2025-07-14"
+    ],
+    "catégorie": [
+        "Alimentation", "Transport", "Salaire", "Loisirs", "Santé", "Alimentation",
+        "Shopping", "Transport", "Logement", "Santé"
+    ],
+    "montant": [
+        120.5, 80.0, 2500.0, 150.0, 60.0, 90.0,
+        200.0, 75.0, 600.0, 50.0
+    ],
+    "type": [
+        "débit", "débit", "crédit", "débit", "débit", "débit",
+        "débit", "débit", "débit", "débit"
+    ],
+    "budget_mensuel": [
+        300, 150, None, 200, 100, 300,
+        400, 150, 800, 100
+    ]
+}
+
+df = pd.DataFrame(data)
+df['date'] = pd.to_datetime(df['date'])
+
+df.to_csv("transactions_exemple.csv", index=False)
+df.to_excel("transactions_exemple.xlsx", index=False)
+
+print("✅ Fichiers générés : transactions_exemple.csv & transactions_exemple.xlsx")
+2. 📈 Ajouter des graphiques dans app.py (avec Plotly)
+🔧 Installer Plotly
+bash
+Copier
+Modifier
+pip install plotly
+➕ Ajout dans app.py
+python
+Copier
+Modifier
+import plotly.express as px
+
+# Après avoir chargé les transactions :
+if df_account is not None and not df_account.empty:
+    df_visu = df_account[df_account['type'] == 'débit']
+
+    # Dépenses par catégorie
+    fig = px.bar(df_visu, x='catégorie', y='montant', title="Dépenses par catégorie")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Dépenses dans le temps
+    df_time = df_visu.groupby('date').sum(numeric_only=True).reset_index()
+    fig2 = px.line(df_time, x='date', y='montant', title="Évolution des dépenses dans le temps")
+    st.plotly_chart(fig2, use_container_width=True)
+3. 🌍 Déployer sur le Web
+🟣 Option 1 – Streamlit Cloud (le plus simple)
+Étapes :
+Crée un compte gratuit : https://streamlit.io/cloud
+
+Pousse ton code sur un repo GitHub.
+
+Clique sur "New App" sur Streamlit Cloud.
+
+Lien : https://your-app-name.streamlit.app
+
+✅ Stocke la clé API dans les secrets de Streamlit (.env → Secrets Manager).
+
+🟠 Option 2 – Render.com (plus personnalisable)
+Crée un compte sur https://render.com
+
+Lien ton repo GitHub
+
+Configuration :
+
+Start command : streamlit run app.py
+
+Python version dans runtime.txt: python-3.11
+
+Variables d’environnement : ajoute OPENAI_API_KEY
+
+4. 📱 Convertir l’app en assistant mobile (Flutter ou React Native)
+🧩 Structure recommandée
+A. Backend API (Python / FastAPI)
+Extrait la logique Streamlit dans une API REST :
+
+bash
+Copier
+Modifier
+pip install fastapi uvicorn
+Exemple main.py :
+python
+Copier
+Modifier
+from fastapi import FastAPI, UploadFile
+from advisor import load_data, summarize_account, format_summary_for_ai
+from chat import get_budget_advice
+
+app = FastAPI()
+
+@app.post("/analyze/")
+async def analyze(file: UploadFile, account_id: int, question: str):
+    df = load_data(await file.read())
+    summary, _ = summarize_account(df, account_id)
+    context = format_summary_for_ai(summary)
+    response = get_budget_advice(question, context)
+    return {"response": response}
+Lance le serveur :
+
+bash
+Copier
+Modifier
+uvicorn main:app --reload
+B. Frontend mobile
+Option 1 – React Native + Expo
+App mobile qui upload le fichier CSV/Excel
+
+Appelle /analyze/ via fetch()
+
+Affiche la réponse du chatbot
+
+Option 2 – Flutter
+Même logique : HTTP POST vers l’API
+
+Interface native + boutons + chat
